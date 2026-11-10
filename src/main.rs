@@ -4,9 +4,6 @@ use std::process::ExitCode;
 
 use breevy_core::{parse_bvy, Expander};
 
-#[cfg(feature = "gui")]
-mod gui;
-
 #[cfg(windows)]
 mod hook;
 #[cfg(target_os = "linux")]
@@ -18,7 +15,7 @@ fn main() -> ExitCode {
     #[cfg(feature = "gui")]
     if args.len() < 2 || args.get(1).map(String::as_str) == Some("--gui") {
         let path = args.get(2).cloned().unwrap_or_else(|| "abbreviations.bvy".to_string());
-        return match gui::run(path) {
+        return match breevy_core::gui::run(path) {
             Ok(_) => ExitCode::SUCCESS,
             Err(e) => {
                 eprintln!("gui error: {e}");

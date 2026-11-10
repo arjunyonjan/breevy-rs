@@ -145,9 +145,15 @@ fn format_token(token: &str, work: &mut DateTime<Local>, pending: &mut Pending) 
     Some(s)
 }
 
+#[cfg(feature = "clipboard")]
 fn clipboard_text() -> Option<String> {
     let mut cb = arboard::Clipboard::new().ok()?;
     cb.get_text().ok()
+}
+
+#[cfg(not(feature = "clipboard"))]
+fn clipboard_text() -> Option<String> {
+    None
 }
 
 pub fn local_datetime(y: i32, mo: u32, d: u32, h: u32, mi: u32, s: u32) -> Option<DateTime<Local>> {

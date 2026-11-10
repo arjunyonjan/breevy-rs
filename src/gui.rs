@@ -1,7 +1,6 @@
-use eframe::egui;
 use egui::{Color32, Frame, Margin, Rounding, Stroke, Vec2};
 
-use breevy_core::{parse_bvy, remove_bvy_record, update_bvy_record, Snippet};
+use crate::{parse_bvy, remove_bvy_record, update_bvy_record, Snippet};
 
 const BG: Color32 = Color32::from_rgb(0xf0, 0xf0, 0xf0);
 const DARK: Color32 = Color32::from_rgb(0x1a, 0x1a, 0x1a);
@@ -11,6 +10,7 @@ const FOLDER: Color32 = Color32::from_rgb(0xf2, 0xc1, 0x4e);
 const FOLDER_EDGE: Color32 = Color32::from_rgb(0xc7, 0x9a, 0x2c);
 const GREEN: Color32 = Color32::from_rgb(0x3a, 0xa6, 0x3a);
 
+#[cfg(feature = "gui")]
 pub fn run(path: String) -> eframe::Result<()> {
     let renderer = match std::env::var("BREEVY_RENDERER") {
         Ok(v) if v.eq_ignore_ascii_case("wgpu") => eframe::Renderer::Wgpu,
@@ -31,7 +31,7 @@ pub fn run(path: String) -> eframe::Result<()> {
     )
 }
 
-struct BreevyApp {
+pub struct BreevyApp {
     path: String,
     raw: String,
     snippets: Vec<Snippet>,
@@ -52,8 +52,15 @@ struct BreevyApp {
 }
 
 impl BreevyApp {
+    #[cfg(feature = "gui")]
     fn new(cc: &eframe::CreationContext<'_>, path: String) -> Self {
         style(&cc.egui_ctx);
+        let mut app = Self::from_path(path);
+        app.styled = true;
+        app
+    }
+
+    pub fn from_path(path: String) -> Self {
         let (snippets, folders, raw) = load(&path);
         let mut app = Self {
             path,
@@ -68,7 +75,7 @@ impl BreevyApp {
             edit_case: false,
             status: "Status: Enabled".to_string(),
             dirty: false,
-            styled: true,
+            styled: false,
             show_prefs: false,
             show_about: false,
             trigger: load_trigger(),
@@ -210,8 +217,8 @@ impl BreevyApp {
     }
 }
 
-impl eframe::App for BreevyApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+impl BreevyApp {
+    pub fn ui(&mut self, ctx: &egui::Context) {
         if !self.styled {
             style(ctx);
             self.styled = true;
@@ -714,4 +721,11 @@ fn extract_folders(text: &str) -> Vec<String> {
         }
     }
     out
+}
+
+#[cfg(feature = "gui")]
+impl eframe::App for BreevyApp {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.ui(ctx);
+    }
 }
