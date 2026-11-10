@@ -14,6 +14,25 @@ use evdev::{AttributeSet, Device, EventType, InputEvent, KeyCode};
 static ENGINE: OnceLock<Mutex<Expander>> = OnceLock::new();
 static INJECT: OnceLock<Mutex<VirtualDevice>> = OnceLock::new();
 static SUPPRESS_UNTIL: OnceLock<Mutex<Instant>> = OnceLock::new();
+static TRIGGER: OnceLock<Vec<KeyCode>> = OnceLock::new();
+
+fn config_path() -> std::path::PathBuf {
+    let home = std::env::var("HOME").unwrap_or_default();
+    std::path::Path::new(&home).join(".config/breevy/config")
+}
+
+fn trigger_keys() -> &'static [KeyCode] {
+    TRIGGER.get_or_init(|| {
+        let cfg = std::fs::read_to_string(config_path()).unwrap_or_default();
+        if cfg.contains("trigger=alt") {
+            vec![KeyCode::KEY_LEFTALT, KeyCode::KEY_RIGHTALT]
+        } else if cfg.contains("trigger=shift") {
+            vec![KeyCode::KEY_LEFTSHIFT, KeyCode::KEY_RIGHTSHIFT]
+        } else {
+            vec![KeyCode::KEY_LEFTCTRL, KeyCode::KEY_RIGHTCTRL]
+        }
+    })
+}
 
 use evdev::uinput::VirtualDevice;
 
@@ -35,9 +54,11 @@ fn suppressed() -> bool {
 }
 
 fn event_for(key: KeyCode) -> Option<Event> {
+    if trigger_keys().contains(&key) {
+        return Some(Event::Trigger);
+    }
     let event = match key {
         KeyCode::KEY_BACKSPACE => Event::Backspace,
-        KeyCode::KEY_LEFTCTRL | KeyCode::KEY_RIGHTCTRL => Event::Trigger,
         KeyCode::KEY_SPACE => Event::Delimiter(' '),
         KeyCode::KEY_ENTER => Event::Delimiter('\n'),
         KeyCode::KEY_TAB => Event::Delimiter('\t'),
@@ -161,6 +182,7 @@ fn key_for_char(c: char) -> Option<(KeyCode, bool)> {
 
 fn type_char(c: char) {
     let Some((key, shift)) = key_for_char(c) else {
+        type_unicode(c);
         return;
     };
     if shift {
@@ -172,14 +194,37 @@ fn type_char(c: char) {
     }
 }
 
-fn inject(remove_chars: usize, text: &str) {
+fn type_unicode(c: char) {
+    if c.is_ascii() {
+        return;
+    }
+    emit(KeyCode::KEY_LEFTCTRL, 1);
+    emit(KeyCode::KEY_LEFTSHIFT, 1);
+    tap(KeyCode::KEY_U);
+    emit(KeyCode::KEY_LEFTSHIFT, 0);
+    emit(KeyCode::KEY_LEFTCTRL, 0);
+    std::thread::sleep(Duration::from_millis(5));
+    for h in format!("{:x}", c as u32).chars() {
+        if let Some((key, _)) = key_for_char(h) {
+            tap(key);
+            std::thread::sleep(Duration::from_millis(2));
+        }
+    }
+    tap(KeyCode::KEY_ENTER);
+}
+
+fn inject(remove_chars: usize, text: &str, launcher: bool) {
     suppress_for(Duration::from_millis(400));
     for _ in 0..remove_chars {
         tap(KeyCode::KEY_BACKSPACE);
     }
-    for c in text.chars() {
-        type_char(c);
-        std::thread::sleep(Duration::from_millis(2));
+    if launcher {
+        let _ = std::process::Command::new("sh").arg("-c").arg(text).spawn();
+    } else {
+        for c in text.chars() {
+            type_char(c);
+            std::thread::sleep(Duration::from_millis(2));
+        }
     }
     suppress_for(Duration::from_millis(400));
 }
@@ -196,10 +241,13 @@ fn handle_key(key: KeyCode) {
         ex.take_expansion()
     };
     if let Some(Expansion {
-        remove_chars, text, ..
+        remove_chars,
+        text,
+        snippet_type,
+        ..
     }) = expansion
     {
-        inject(remove_chars, &text);
+        inject(remove_chars, &text, snippet_type == 1 || snippet_type == 2);
     }
 }
 

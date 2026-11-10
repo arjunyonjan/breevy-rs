@@ -40,6 +40,9 @@ struct BreevyApp {
     status: String,
     dirty: bool,
     styled: bool,
+    show_prefs: bool,
+    trigger: String,
+    new_folder: Option<String>,
 }
 
 impl BreevyApp {
@@ -60,6 +63,9 @@ impl BreevyApp {
             status: "Status: Enabled".to_string(),
             dirty: false,
             styled: true,
+            show_prefs: false,
+            trigger: load_trigger(),
+            new_folder: None,
         };
         if !app.snippets.is_empty() {
             app.select(0);
@@ -97,6 +103,69 @@ impl BreevyApp {
         }
     }
 
+    fn dialogs(&mut self, ctx: &egui::Context) {
+        if self.new_folder.is_some() {
+            let mut open = true;
+            let mut name = self.new_folder.clone().unwrap_or_default();
+            egui::Window::new("New Folder")
+                .collapsible(false)
+                .resizable(false)
+                .open(&mut open)
+                .show(ctx, |ui| {
+                    ui.label("Folder name");
+                    ui.text_edit_singleline(&mut name);
+                    ui.horizontal(|ui| {
+                        if ui.button("Create").clicked() && !name.trim().is_empty() {
+                            let fname = name.trim().to_string();
+                            let xml = format!("<f n=\"{}\"></f>", xml_attr(&fname));
+                            if let Some(pos) = self.raw.rfind("</Breevy>") {
+                                self.raw.insert_str(pos, &xml);
+                            } else {
+                                self.raw.push_str(&xml);
+                            }
+                            self.folders.push(fname.clone());
+                            let _ = std::fs::write(&self.path, &self.raw);
+                            self.status = format!("Status: folder '{fname}' added");
+                            self.new_folder = None;
+                        }
+                        if ui.button("Cancel").clicked() {
+                            self.new_folder = None;
+                        }
+                    });
+                });
+            if !open {
+                self.new_folder = None;
+            }
+        }
+
+        if self.show_prefs {
+            let mut open = true;
+            egui::Window::new("Preferences")
+                .collapsible(false)
+                .resizable(false)
+                .open(&mut open)
+                .show(ctx, |ui| {
+                    ui.label("Trigger key (for trigger-mode snippets)");
+                    egui::ComboBox::from_id_salt("prefs_trigger")
+                        .selected_text(self.trigger.clone())
+                        .show_ui(ui, |ui| {
+                            for t in ["ctrl", "alt", "shift"] {
+                                ui.selectable_value(&mut self.trigger, t.to_string(), t);
+                            }
+                        });
+                    ui.horizontal(|ui| {
+                        if ui.button("Save").clicked() {
+                            save_trigger(&self.trigger);
+                            self.status = "Status: preferences saved, restart hook".into();
+                        }
+                    });
+                });
+            if !open {
+                self.show_prefs = false;
+            }
+        }
+    }
+
     fn filtered(&self) -> Vec<usize> {
         let q = self.filter.trim().to_lowercase();
         (0..self.snippets.len())
@@ -127,7 +196,13 @@ impl eframe::App for BreevyApp {
                 ui.horizontal_centered(|ui| {
                     ui.spacing_mut().item_spacing.x = 14.0;
                     for m in ["File", "Options", "Backup/Manager", "Help"] {
-                        ui.label(egui::RichText::new(m).size(11.0).color(DARK));
+                        let resp = ui.add(
+                            egui::Label::new(egui::RichText::new(m).size(11.0).color(DARK))
+                                .sense(egui::Sense::click()),
+                        );
+                        if m == "Options" && resp.clicked() {
+                            self.show_prefs = true;
+                        }
                     }
                 });
             });
@@ -139,7 +214,7 @@ impl eframe::App for BreevyApp {
                 ui.horizontal_centered(|ui| {
                     ui.spacing_mut().item_spacing.x = 4.0;
                     if tb(ui, "New Folder", FOLDER).clicked() {
-                        self.status = "Status: folders are stored in the .bvy file".into();
+                        self.new_folder = Some(String::new());
                     }
                     if tb(ui, "New Abbreviation", Color32::from_rgb(0x4a, 0x90, 0xd9)).clicked() {
                         let n = self.snippets.len() + 1;
@@ -159,7 +234,22 @@ impl eframe::App for BreevyApp {
                         self.dirty = true;
                     }
                     if tb(ui, "New Launcher", Color32::from_rgb(0x4a, 0x90, 0xd9)).clicked() {
-                        self.status = "Status: launchers are snippetType 1/2 entries".into();
+                        let n = self.snippets.len() + 1;
+                        self.snippets.push(Snippet {
+                            abbreviation: format!("launch{n}"),
+                            expansion: "https://".into(),
+                            label: "New launcher".into(),
+                            mode: 2,
+                            snippet_type: 1,
+                            uuid: format!("breevy-rs-launch-{n:08x}"),
+                            case_sensitive: false,
+                        });
+                        let idx = self.snippets.len() - 1;
+                        let new_snip = self.snippets[idx].clone();
+                        self.raw = update_bvy_record(&self.raw, &new_snip);
+                        self.select(idx);
+                        self.dirty = true;
+                        self.status = "Status: launcher added, set the target URL".into();
                     }
                     ui.add_space(4.0);
                     ui.separator();
@@ -399,6 +489,7 @@ impl eframe::App for BreevyApp {
                         );
                     });
             });
+        self.dialogs(ctx);
     }
 }
 
@@ -513,6 +604,36 @@ fn paint_check(ui: &egui::Ui, right: f32, y: f32) {
         .line_segment([p(3.0, 6.5), p(5.5, 9.0)], Stroke::new(1.6, Color32::WHITE));
     ui.painter()
         .line_segment([p(5.5, 9.0), p(10.0, 3.5)], Stroke::new(1.6, Color32::WHITE));
+}
+
+fn config_path() -> std::path::PathBuf {
+    let home = std::env::var("HOME").unwrap_or_default();
+    std::path::Path::new(&home).join(".config/breevy/config")
+}
+
+fn load_trigger() -> String {
+    std::fs::read_to_string(config_path())
+        .ok()
+        .and_then(|c| {
+            c.lines()
+                .find_map(|l| l.strip_prefix("trigger=").map(|v| v.trim().to_string()))
+        })
+        .unwrap_or_else(|| "ctrl".to_string())
+}
+
+fn save_trigger(t: &str) {
+    let p = config_path();
+    if let Some(dir) = p.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    let _ = std::fs::write(p, format!("trigger={t}\n"));
+}
+
+fn xml_attr(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
 }
 
 fn load(path: &str) -> (Vec<Snippet>, Vec<String>, String) {

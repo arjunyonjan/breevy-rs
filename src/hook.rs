@@ -8,9 +8,29 @@ use breevy_core::engine::{Event, Expansion};
 use breevy_core::{parse_bvy, Expander};
 use winapi::shared::minwindef::{HINSTANCE, LPARAM, LRESULT, UINT, WPARAM};
 use winapi::um::libloaderapi::GetModuleHandleW;
+use winapi::um::shellapi::ShellExecuteW;
 use winapi::um::winuser::*;
 
 static ENGINE: OnceLock<Mutex<Expander>> = OnceLock::new();
+static TRIGGER: OnceLock<Vec<i32>> = OnceLock::new();
+
+fn trigger_keys() -> &'static [i32] {
+    TRIGGER.get_or_init(|| {
+        let cfg = std::fs::read_to_string(config_path()).unwrap_or_default();
+        if cfg.contains("trigger=alt") {
+            vec![VK_MENU, VK_LMENU, VK_RMENU]
+        } else if cfg.contains("trigger=shift") {
+            vec![VK_SHIFT, VK_LSHIFT, VK_RSHIFT]
+        } else {
+            vec![VK_CONTROL, VK_LCONTROL, VK_RCONTROL]
+        }
+    })
+}
+
+fn config_path() -> std::path::PathBuf {
+    let home = std::env::var("USERPROFILE").unwrap_or_default();
+    std::path::Path::new(&home).join(".config\\breevy\\config")
+}
 
 unsafe extern "system" fn hook_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     if code >= 0 {
@@ -25,9 +45,11 @@ unsafe extern "system" fn hook_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -
 }
 
 fn event_for(vk: i32) -> Option<Event> {
+    if trigger_keys().contains(&vk) {
+        return Some(Event::Trigger);
+    }
     let event = match vk {
         VK_BACK => Event::Backspace,
-        VK_CONTROL | VK_LCONTROL | VK_RCONTROL => Event::Trigger,
         VK_SPACE => Event::Delimiter(' '),
         VK_RETURN => Event::Delimiter('\n'),
         VK_TAB => Event::Delimiter('\t'),
@@ -56,16 +78,36 @@ fn handle_vk(vk: i32) {
         ex.take_expansion()
     };
     if let Some(Expansion {
-        remove_chars, text, ..
+        remove_chars,
+        text,
+        snippet_type,
+        ..
     }) = expansion
     {
         unsafe {
             for _ in 0..remove_chars {
                 send_vk(VK_BACK);
             }
-            send_text(&text);
+            if snippet_type == 1 || snippet_type == 2 {
+                launch(&text);
+            } else {
+                send_text(&text);
+            }
         }
     }
+}
+
+unsafe fn launch(target: &str) {
+    let op: Vec<u16> = "open\0".encode_utf16().collect();
+    let file: Vec<u16> = target.encode_utf16().chain(std::iter::once(0)).collect();
+    ShellExecuteW(
+        ptr::null_mut(),
+        op.as_ptr(),
+        file.as_ptr(),
+        ptr::null(),
+        ptr::null(),
+        SW_SHOWNORMAL,
+    );
 }
 
 fn vk_char(vk: i32) -> Option<char> {

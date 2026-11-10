@@ -65,8 +65,14 @@ impl Expander {
             Event::Delimiter(c) => self.delimiter_or_none(c),
             Event::Trigger => match self.find_match(true) {
                 Some(m) => {
+                    let launcher = self.snippets[m].snippet_type == 1
+                        || self.snippets[m].snippet_type == 2;
                     self.apply(m);
-                    Action::Expand(self.expansion.as_ref().map(|e| e.remove_chars).unwrap_or(0))
+                    if launcher {
+                        Action::Launch
+                    } else {
+                        Action::Expand(self.expansion.as_ref().map(|e| e.remove_chars).unwrap_or(0))
+                    }
                 }
                 None => Action::None,
             },
