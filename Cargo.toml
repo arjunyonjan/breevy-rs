@@ -1,6 +1,6 @@
 [package]
 name = "breevy-rs"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
 description = "A fast, modern text expander compatible with Breevy .bvy files"
 license = "MIT"

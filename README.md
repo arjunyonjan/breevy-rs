@@ -56,8 +56,9 @@ preserved; export path only).
 
 Notes:
 
-- US keyboard layout letters/digits/punctuation only (no Shift symbols yet).
-- Trigger is Ctrl; Breevy's configurable hotkey table is not wired yet.
+- US keyboard layout with Shift and Caps Lock tracked, so uppercase letters and
+  shifted symbols (`! @ # $ % ... { } | : " < > ?`) are captured correctly.
+- Trigger is configurable in Preferences (Ctrl / Alt / Shift).
 - Injected keystrokes are ignored, so no feedback loop.
 
 ## Linux hook
@@ -72,10 +73,12 @@ breevy-rs --hook ~/.config/breevy/abbreviations.bvy
 
 Notes:
 
-- Types US-layout ASCII only (letters, digits, punctuation, Shift symbols).
-  Non-ASCII characters are skipped.
+- Types US-layout ASCII (letters, digits, punctuation, Shift symbols);
+  non-ASCII is typed via Ctrl+Shift+U unicode input.
+- Shift and Caps Lock are tracked during capture, so uppercase abbreviations
+  and shifted symbols match exactly.
 - Kernel-level, so it works in X11 and Wayland sessions alike.
-- Trigger is Ctrl.
+- Trigger is configurable in Preferences (Ctrl / Alt / Shift).
 
 ## Build
 
@@ -87,6 +90,11 @@ cargo build --release --target x86_64-pc-windows-gnu   # Windows exe
 
 Cross-compiling needs `mingw-w64` and the Rust target
 `x86_64-pc-windows-gnu`.
+
+## Releases
+
+Tagged builds (`v*`) are produced by GitHub Actions:
+`breevy-rs-linux-x86_64.zip` and `breevy-rs-win64.zip` on the Releases page.
 
 ## Layout
 
