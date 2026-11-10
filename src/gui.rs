@@ -12,7 +12,12 @@ const FOLDER_EDGE: Color32 = Color32::from_rgb(0xc7, 0x9a, 0x2c);
 const GREEN: Color32 = Color32::from_rgb(0x3a, 0xa6, 0x3a);
 
 pub fn run(path: String) -> eframe::Result<()> {
+    let renderer = match std::env::var("BREEVY_RENDERER") {
+        Ok(v) if v.eq_ignore_ascii_case("wgpu") => eframe::Renderer::Wgpu,
+        _ => eframe::Renderer::Glow,
+    };
     let options = eframe::NativeOptions {
+        renderer,
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([812.0, 614.0])
             .with_min_inner_size([640.0, 480.0])
