@@ -5,7 +5,7 @@ use std::ptr;
 use std::sync::{Mutex, OnceLock};
 
 use breevy_core::engine::{Event, Expansion};
-use breevy_core::{parse_bvy, Expander};
+use breevy_core::{charmap, parse_bvy, Expander};
 use winapi::shared::minwindef::{HINSTANCE, LPARAM, LRESULT, UINT, WPARAM};
 use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::shellapi::ShellExecuteW;
@@ -118,43 +118,10 @@ fn caps_on() -> bool {
     unsafe { (GetKeyState(VK_CAPITAL) as u16) & 1 != 0 }
 }
 
-fn shifted(c: char) -> char {
-    match c {
-        '0' => ')',
-        '1' => '!',
-        '2' => '@',
-        '3' => '#',
-        '4' => '$',
-        '5' => '%',
-        '6' => '^',
-        '7' => '&',
-        '8' => '*',
-        '9' => '(',
-        '.' => '>',
-        ',' => '<',
-        ';' => ':',
-        '=' => '+',
-        '-' => '_',
-        '/' => '?',
-        '`' => '~',
-        '[' => '{',
-        '\\' => '|',
-        ']' => '}',
-        '\'' => '"',
-        c => c.to_ascii_uppercase(),
-    }
-}
 
 fn vk_char(vk: i32, shift: bool, caps: bool) -> Option<char> {
     let base = match vk {
-        0x41..=0x5A => {
-            let c = (b'a' + (vk - 0x41) as u8) as char;
-            return Some(if shift ^ caps {
-                c.to_ascii_uppercase()
-            } else {
-                c
-            });
-        }
+        0x41..=0x5A => (b'a' + (vk - 0x41) as u8) as char,
         0x30..=0x39 => (b'0' + (vk - 0x30) as u8) as char,
         VK_OEM_PERIOD => '.',
         VK_OEM_COMMA => ',',
@@ -169,7 +136,7 @@ fn vk_char(vk: i32, shift: bool, caps: bool) -> Option<char> {
         VK_OEM_7 => '\'',
         _ => return None,
     };
-    Some(if shift { shifted(base) } else { base })
+    Some(charmap::apply_shift(base, shift, caps))
 }
 
 fn send_input(input: &mut INPUT) -> UINT {

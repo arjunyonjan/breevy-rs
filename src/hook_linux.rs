@@ -8,7 +8,7 @@ use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use breevy_core::engine::{Event, Expansion};
-use breevy_core::{parse_bvy, Expander};
+use breevy_core::{charmap, parse_bvy, Expander};
 use evdev::uinput::VirtualDeviceBuilder;
 use evdev::{AttributeSet, Device, EventType, InputEvent, KeyCode};
 
@@ -42,45 +42,9 @@ fn track_modifiers(key: KeyCode, value: i32) {
     }
 }
 
-fn shifted(c: char) -> char {
-    match c {
-        '0' => ')',
-        '1' => '!',
-        '2' => '@',
-        '3' => '#',
-        '4' => '$',
-        '5' => '%',
-        '6' => '^',
-        '7' => '&',
-        '8' => '*',
-        '9' => '(',
-        '.' => '>',
-        ',' => '<',
-        ';' => ':',
-        '=' => '+',
-        '-' => '_',
-        '/' => '?',
-        '`' => '~',
-        '[' => '{',
-        '\\' => '|',
-        ']' => '}',
-        '\'' => '"',
-        c => c.to_ascii_uppercase(),
-    }
-}
 
 fn apply_shift(c: char) -> char {
-    if c.is_ascii_lowercase() {
-        if shift_active() ^ caps_active() {
-            c.to_ascii_uppercase()
-        } else {
-            c
-        }
-    } else if shift_active() {
-        shifted(c)
-    } else {
-        c
-    }
+    charmap::apply_shift(c, shift_active(), caps_active())
 }
 
 fn config_path() -> std::path::PathBuf {

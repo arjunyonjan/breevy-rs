@@ -96,6 +96,17 @@ Cross-compiling needs `mingw-w64` and the Rust target
 Tagged builds (`v*`) are produced by GitHub Actions:
 `breevy-rs-linux-x86_64.zip` and `breevy-rs-win64.zip` on the Releases page.
 
+## Testing
+
+Local suite (phone-friendly, no native window or clipboard deps):
+
+```sh
+cargo test --no-default-features --features editor
+```
+
+This runs the parser/engine unit tests, headless UI tests (egui_kittest), and CLI integration tests.
+CI is retired — run this before tagging a release.
+
 ## Layout
 
 - `src/bvy.rs` — parser, entities, writer, in-place record update/remove.

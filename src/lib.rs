@@ -5,6 +5,7 @@
 //! trigger/match/expand semantics of the original application.
 
 pub mod bvy;
+pub mod charmap;
 pub mod engine;
 pub mod macros;
 
