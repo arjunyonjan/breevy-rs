@@ -64,7 +64,7 @@ fn event_for(vk: i32) -> Option<Event> {
         VK_OEM_5 => Event::Delimiter('\\'),
         VK_OEM_6 => Event::Delimiter(']'),
         VK_OEM_7 => Event::Delimiter('\''),
-        _ => Event::Character(vk_char(vk)?),
+        _ => Event::Character(vk_char(vk, shift_down(), caps_on())?),
     };
     Some(event)
 }
@@ -110,23 +110,66 @@ unsafe fn launch(target: &str) {
     );
 }
 
-fn vk_char(vk: i32) -> Option<char> {
-    match vk {
-        0x41..=0x5A => Some((b'a' + (vk - 0x41) as u8) as char),
-        0x30..=0x39 => Some((b'0' + (vk - 0x30) as u8) as char),
-        VK_OEM_PERIOD => Some('.'),
-        VK_OEM_COMMA => Some(','),
-        VK_OEM_1 => Some(';'),
-        VK_OEM_PLUS => Some('='),
-        VK_OEM_MINUS => Some('-'),
-        VK_OEM_2 => Some('/'),
-        VK_OEM_3 => Some('`'),
-        VK_OEM_4 => Some('['),
-        VK_OEM_5 => Some('\\'),
-        VK_OEM_6 => Some(']'),
-        VK_OEM_7 => Some('\''),
-        _ => None,
+fn shift_down() -> bool {
+    unsafe { (GetAsyncKeyState(VK_SHIFT) as u16) & 0x8000 != 0 }
+}
+
+fn caps_on() -> bool {
+    unsafe { (GetKeyState(VK_CAPITAL) as u16) & 1 != 0 }
+}
+
+fn shifted(c: char) -> char {
+    match c {
+        '0' => ')',
+        '1' => '!',
+        '2' => '@',
+        '3' => '#',
+        '4' => '$',
+        '5' => '%',
+        '6' => '^',
+        '7' => '&',
+        '8' => '*',
+        '9' => '(',
+        '.' => '>',
+        ',' => '<',
+        ';' => ':',
+        '=' => '+',
+        '-' => '_',
+        '/' => '?',
+        '`' => '~',
+        '[' => '{',
+        '\\' => '|',
+        ']' => '}',
+        '\'' => '"',
+        c => c.to_ascii_uppercase(),
     }
+}
+
+fn vk_char(vk: i32, shift: bool, caps: bool) -> Option<char> {
+    let base = match vk {
+        0x41..=0x5A => {
+            let c = (b'a' + (vk - 0x41) as u8) as char;
+            return Some(if shift ^ caps {
+                c.to_ascii_uppercase()
+            } else {
+                c
+            });
+        }
+        0x30..=0x39 => (b'0' + (vk - 0x30) as u8) as char,
+        VK_OEM_PERIOD => '.',
+        VK_OEM_COMMA => ',',
+        VK_OEM_1 => ';',
+        VK_OEM_PLUS => '=',
+        VK_OEM_MINUS => '-',
+        VK_OEM_2 => '/',
+        VK_OEM_3 => '`',
+        VK_OEM_4 => '[',
+        VK_OEM_5 => '\\',
+        VK_OEM_6 => ']',
+        VK_OEM_7 => '\'',
+        _ => return None,
+    };
+    Some(if shift { shifted(base) } else { base })
 }
 
 fn send_input(input: &mut INPUT) -> UINT {

@@ -3,6 +3,7 @@
 //! and write access to /dev/uinput (usually: add the user to the `input` group).
 
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
@@ -15,6 +16,72 @@ static ENGINE: OnceLock<Mutex<Expander>> = OnceLock::new();
 static INJECT: OnceLock<Mutex<VirtualDevice>> = OnceLock::new();
 static SUPPRESS_UNTIL: OnceLock<Mutex<Instant>> = OnceLock::new();
 static TRIGGER: OnceLock<Vec<KeyCode>> = OnceLock::new();
+static SHIFT: AtomicBool = AtomicBool::new(false);
+static CAPS: AtomicBool = AtomicBool::new(false);
+
+fn shift_active() -> bool {
+    SHIFT.load(Ordering::Relaxed)
+}
+
+fn caps_active() -> bool {
+    CAPS.load(Ordering::Relaxed)
+}
+
+fn track_modifiers(key: KeyCode, value: i32) {
+    match key {
+        KeyCode::KEY_LEFTSHIFT | KeyCode::KEY_RIGHTSHIFT => {
+            SHIFT.store(value != 0, Ordering::Relaxed);
+        }
+        KeyCode::KEY_CAPSLOCK => {
+            if value == 1 {
+                let caps = CAPS.load(Ordering::Relaxed);
+                CAPS.store(!caps, Ordering::Relaxed);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn shifted(c: char) -> char {
+    match c {
+        '0' => ')',
+        '1' => '!',
+        '2' => '@',
+        '3' => '#',
+        '4' => '$',
+        '5' => '%',
+        '6' => '^',
+        '7' => '&',
+        '8' => '*',
+        '9' => '(',
+        '.' => '>',
+        ',' => '<',
+        ';' => ':',
+        '=' => '+',
+        '-' => '_',
+        '/' => '?',
+        '`' => '~',
+        '[' => '{',
+        '\\' => '|',
+        ']' => '}',
+        '\'' => '"',
+        c => c.to_ascii_uppercase(),
+    }
+}
+
+fn apply_shift(c: char) -> char {
+    if c.is_ascii_lowercase() {
+        if shift_active() ^ caps_active() {
+            c.to_ascii_uppercase()
+        } else {
+            c
+        }
+    } else if shift_active() {
+        shifted(c)
+    } else {
+        c
+    }
+}
 
 fn config_path() -> std::path::PathBuf {
     let home = std::env::var("HOME").unwrap_or_default();
@@ -111,7 +178,10 @@ fn event_for(key: KeyCode) -> Option<Event> {
         KeyCode::KEY_9 => Event::Character('9'),
         _ => return None,
     };
-    Some(event)
+    Some(match event {
+        Event::Character(c) => Event::Character(apply_shift(c)),
+        other => other,
+    })
 }
 
 fn emit(key: KeyCode, value: i32) -> bool {
@@ -266,10 +336,12 @@ fn read_device(mut dev: Device) {
                     if ev.event_type() != EventType::KEY {
                         continue;
                     }
+                    let key = KeyCode::new(ev.code());
+                    track_modifiers(key, ev.value());
                     if ev.value() != 1 {
                         continue;
                     }
-                    handle_key(KeyCode::new(ev.code()));
+                    handle_key(key);
                 }
             }
             Err(e) => {
