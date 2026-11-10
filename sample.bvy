@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Breevy n="All Abbreviations / Folders" t="0" d="0" w="0" m="1">
+<a a="addr" d="Street address" e="123 Applebutter Street&#10;Kathmandu 44600" c="2" t="4" r="0">
+<textexpander><dict>
+<key>abbreviation</key><string>addr</string>
+<key>abbreviationMode</key><integer>2</integer>
+<key>label</key><string>Street address</string>
+<key>plainText</key><string>123 Applebutter Street&#10;Kathmandu 44600</string>
+<key>snippetType</key><integer>0</integer>
+<key>uuidString</key><string>11111111-1111-1111-1111-111111111111</string>
+</dict></textexpander>
+<textexpanderBS><dict>
+<key>triggerMode</key><integer>2</integer>
+<key>uuidString</key><string>11111111-1111-1111-1111-111111111111</string>
+</dict></textexpanderBS>
+</a>
+<a a="bizn" d="Business name" e="Yonjan Ventures" c="2" t="4" r="0">
+<textexpander><dict>
+<key>abbreviation</key><string>bizn</string>
+<key>abbreviationMode</key><integer>2</integer>
+<key>label</key><string>Business name</string>
+<key>plainText</key><string>Yonjan Ventures</string>
+<key>snippetType</key><integer>0</integer>
+<key>uuidString</key><string>22222222-2222-2222-2222-222222222222</string>
+</dict></textexpander>
+<textexpanderBS><dict>
+<key>triggerMode</key><integer>2</integer>
+<key>uuidString</key><string>22222222-2222-2222-2222-222222222222</string>
+</dict></textexpanderBS>
+</a>
+<a a="bizem" d="E-mail address" e="hello@yonjanventures.com" c="2" t="4" r="0">
+<textexpander><dict>
+<key>abbreviation</key><string>bizem</string>
+<key>abbreviationMode</key><integer>2</integer>
+<key>label</key><string>E-mail address</string>
+<key>plainText</key><string>hello@yonjanventures.com</string>
+<key>snippetType</key><integer>0</integer>
+<key>uuidString</key><string>33333333-3333-3333-3333-333333333333</string>
+</dict></textexpander>
+<textexpanderBS><dict>
+<key>triggerMode</key><integer>2</integer>
+<key>uuidString</key><string>33333333-3333-3333-3333-333333333333</string>
+</dict></textexpanderBS>
+</a>
+<a a="biztel" d="Telephone number" e="+977 98-0000-0000" c="2" t="4" r="0">
+<textexpander><dict>
+<key>abbreviation</key><string>biztel</string>
+<key>abbreviationMode</key><integer>2</integer>
+<key>label</key><string>Telephone number</string>
+<key>plainText</key><string>+977 98-0000-0000</string>
+<key>snippetType</key><integer>0</integer>
+<key>uuidString</key><string>44444444-4444-4444-4444-444444444444</string>
+</dict></textexpander>
+<textexpanderBS><dict>
+<key>triggerMode</key><integer>2</integer>
+<key>uuidString</key><string>44444444-4444-4444-4444-444444444444</string>
+</dict></textexpanderBS>
+</a>
+<a a="bizweb" d="Website" e="https://yonjanventures.com" c="2" t="4" r="0">
+<textexpander><dict>
+<key>abbreviation</key><string>bizweb</string>
+<key>abbreviationMode</key><integer>2</integer>
+<key>label</key><string>Website</string>
+<key>plainText</key><string>https://yonjanventures.com</string>
+<key>snippetType</key><integer>0</integer>
+<key>uuidString</key><string>55555555-5555-5555-5555-555555555555</string>
+</dict></textexpander>
+<textexpanderBS><dict>
+<key>triggerMode</key><integer>2</integer>
+<key>uuidString</key><string>55555555-5555-5555-5555-555555555555</string>
+</dict></textexpanderBS>
+</a>
+<a a="sig" d="E-mail signature" e="Best regards,&#10;Arjun Yonjan&#10;Yonjan Ventures" c="2" t="4" r="0">
+<textexpander><dict>
+<key>abbreviation</key><string>sig</string>
+<key>abbreviationMode</key><integer>2</integer>
+<key>label</key><string>E-mail signature</string>
+<key>plainText</key><string>Best regards,&#10;Arjun Yonjan&#10;Yonjan Ventures</string>
+<key>snippetType</key><integer>0</integer>
+<key>uuidString</key><string>66666666-6666-6666-6666-666666666666</string>
+</dict></textexpander>
+<textexpanderBS><dict>
+<key>triggerMode</key><integer>2</integer>
+<key>uuidString</key><string>66666666-6666-6666-6666-666666666666</string>
+</dict></textexpanderBS>
+</a>
+<a a="today" d="Today's date" e="%B %d, %Y" c="2" t="4" r="0">
+<textexpander><dict>
+<key>abbreviation</key><string>today</string>
+<key>abbreviationMode</key><integer>2</integer>
+<key>label</key><string>Today's date</string>
+<key>plainText</key><string>%B %d, %Y</string>
+<key>snippetType</key><integer>0</integer>
+<key>uuidString</key><string>77777777-7777-7777-7777-777777777777</string>
+</dict></textexpander>
+<textexpanderBS><dict>
+<key>triggerMode</key><integer>2</integer>
+<key>uuidString</key><string>77777777-7777-7777-7777-777777777777</string>
+</dict></textexpanderBS>
+</a>
+<a a="brb" d="Be right back" e="Be right back." c="2" t="4" r="0">
+<textexpander><dict>
+<key>abbreviation</key><string>brb</string>
+<key>abbreviationMode</key><integer>2</integer>
+<key>label</key><string>Be right back</string>
+<key>plainText</key><string>Be right back.</string>
+<key>snippetType</key><integer>0</integer>
+<key>uuidString</key><string>88888888-8888-8888-8888-888888888888</string>
+</dict></textexpander>
+<textexpanderBS><dict>
+<key>triggerMode</key><integer>2</integer>
+<key>uuidString</key><string>88888888-8888-8888-8888-888888888888</string>
+</dict></textexpanderBS>
+</a>
+</Breevy>

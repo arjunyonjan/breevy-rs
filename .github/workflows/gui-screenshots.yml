@@ -1,0 +1,47 @@
+name: gui-screenshots
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  windows-gui:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: cargo build --release
+      - name: Run GUI and screenshot
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "target\release\breevy-rs.exe" -ArgumentList "sample.bvy" -PassThru
+          Start-Sleep -Seconds 12
+          Add-Type -AssemblyName System.Windows.Forms
+          Add-Type -AssemblyName System.Drawing
+          $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bmp = New-Object System.Drawing.Bitmap $screen.Width, $screen.Height
+          $g = [System.Drawing.Graphics]::FromImage($bmp)
+          $g.CopyFromScreen($screen.Location, [System.Drawing.Point]::Empty, $screen.Size)
+          $bmp.Save("$PWD\shot-windows.png", [System.Drawing.Imaging.ImageFormat]::Png)
+          Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shot-windows
+          path: shot-windows.png
+
+  linux-gui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deps
+        run: sudo apt-get update && sudo apt-get install -y xvfb ffmpeg libgl1-mesa-dri libegl1
+      - name: Build
+        run: cargo build --release
+      - name: Run GUI under Xvfb and screenshot
+        run: |
+          xvfb-run -a -s "-screen 0 1024x700x24" bash -c './target/release/breevy-rs sample.bvy & sleep 10; ffmpeg -y -f x11grab -video_size 812x614 -i $DISPLAY.0 -frames:v 1 shot-linux.png'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shot-linux
+          path: shot-linux.png

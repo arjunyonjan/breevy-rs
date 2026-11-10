@@ -1,0 +1,34 @@
+[package]
+name = "breevy-rs"
+version = "0.1.0"
+edition = "2021"
+description = "A fast, modern text expander compatible with Breevy .bvy files"
+license = "MIT"
+
+[lib]
+name = "breevy_core"
+path = "src/lib.rs"
+
+[[bin]]
+name = "breevy-rs"
+path = "src/main.rs"
+
+[features]
+default = ["gui"]
+gui = ["dep:eframe"]
+
+[dependencies]
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+arboard = "3"
+eframe = { version = "0.29", optional = true, default-features = false, features = ["glow", "default_fonts", "wayland", "x11"] }
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["winuser", "libloaderapi"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+evdev = "0.13"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
