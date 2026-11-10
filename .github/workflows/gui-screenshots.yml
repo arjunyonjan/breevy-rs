@@ -12,18 +12,38 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build
         run: cargo build --release
-      - name: Run GUI and screenshot
+      - name: Run GUI and capture app window
         shell: pwsh
         run: |
+          Add-Type -TypeDefinition @"
+          using System;
+          using System.Runtime.InteropServices;
+          public class Win {
+            [DllImport("user32.dll", SetLastError=true, CharSet=CharSet.Unicode)]
+            public static extern IntPtr FindWindow(string cls, string title);
+            [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
+            [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+            [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
+            public struct RECT { public int Left, Top, Right, Bottom; }
+          }
+          "@
           $p = Start-Process -FilePath "target\release\breevy-rs.exe" -ArgumentList "sample.bvy" -PassThru
-          Start-Sleep -Seconds 12
-          Add-Type -AssemblyName System.Windows.Forms
+          Start-Sleep -Seconds 10
+          $h = [Win]::FindWindow($null, "Breevy")
+          if ($h -eq [IntPtr]::Zero) { throw "Breevy window not found" }
+          [Win]::ShowWindow($h, 9) | Out-Null
+          [Win]::SetForegroundWindow($h) | Out-Null
+          Start-Sleep -Seconds 2
+          $r = New-Object Win+RECT
+          [Win]::GetWindowRect($h, [ref]$r) | Out-Null
+          $w = $r.Right - $r.Left
+          $ht = $r.Bottom - $r.Top
           Add-Type -AssemblyName System.Drawing
-          $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-          $bmp = New-Object System.Drawing.Bitmap $screen.Width, $screen.Height
+          $bmp = New-Object System.Drawing.Bitmap $w, $ht
           $g = [System.Drawing.Graphics]::FromImage($bmp)
-          $g.CopyFromScreen($screen.Location, [System.Drawing.Point]::Empty, $screen.Size)
+          $g.CopyFromScreen($r.Left, $r.Top, 0, 0, (New-Object System.Drawing.Size $w, $ht))
           $bmp.Save("$PWD\shot-windows.png", [System.Drawing.Imaging.ImageFormat]::Png)
+          $g.Dispose(); $bmp.Dispose()
           Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
       - uses: actions/upload-artifact@v4
         with:
@@ -35,13 +55,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Deps
-        run: sudo apt-get update && sudo apt-get install -y xvfb ffmpeg libgl1-mesa-dri libegl1
+        run: sudo apt-get update && sudo apt-get install -y xvfb imagemagick libgl1-mesa-dri libegl1
       - name: Build
         run: cargo build --release
-      - name: Run GUI under Xvfb and screenshot
+      - name: Run GUI under Xvfb and capture root
         run: |
-          xvfb-run -a -s "-screen 0 1024x700x24" bash -c './target/release/breevy-rs sample.bvy & sleep 10; ffmpeg -y -f x11grab -video_size 812x614 -i $DISPLAY.0 -frames:v 1 shot-linux.png'
+          xvfb-run -a -s "-screen 0 1024x768x24" bash -c './target/release/breevy-rs sample.bvy > app.log 2>&1 & sleep 8; import -window root shot-linux.png; cat app.log'
       - uses: actions/upload-artifact@v4
         with:
           name: shot-linux
-          path: shot-linux.png
+          path: |
+            shot-linux.png
+            app.log

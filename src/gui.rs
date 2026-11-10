@@ -41,6 +41,7 @@ struct BreevyApp {
     dirty: bool,
     styled: bool,
     show_prefs: bool,
+    show_about: bool,
     trigger: String,
     new_folder: Option<String>,
 }
@@ -64,6 +65,7 @@ impl BreevyApp {
             dirty: false,
             styled: true,
             show_prefs: false,
+            show_about: false,
             trigger: load_trigger(),
             new_folder: None,
         };
@@ -138,6 +140,27 @@ impl BreevyApp {
             }
         }
 
+        if self.show_about {
+            let mut open = true;
+            egui::Window::new("About Breevy-rs")
+                .collapsible(false)
+                .resizable(false)
+                .open(&mut open)
+                .show(ctx, |ui| {
+                    ui.label(egui::RichText::new("Breevy-rs").strong().size(14.0));
+                    ui.label(format!("version {}", env!("CARGO_PKG_VERSION")));
+                    ui.label("Rust clone of the Breevy text expander.");
+                    ui.label("MIT License · Yonjan Ventures");
+                    ui.hyperlink_to(
+                        "github.com/arjunyonjan/breevy-rs",
+                        "https://github.com/arjunyonjan/breevy-rs",
+                    );
+                });
+            if !open {
+                self.show_about = false;
+            }
+        }
+
         if self.show_prefs {
             let mut open = true;
             egui::Window::new("Preferences")
@@ -202,6 +225,9 @@ impl eframe::App for BreevyApp {
                         );
                         if m == "Options" && resp.clicked() {
                             self.show_prefs = true;
+                        }
+                        if m == "Help" && resp.clicked() {
+                            self.show_about = true;
                         }
                     }
                 });
